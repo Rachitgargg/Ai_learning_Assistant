@@ -655,28 +655,28 @@ function App() {
                 <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                   <div className="segmented-control stagger-3">
                     <button 
-                      className={`segmented-btn ${explanationStyle === 'eli5' ? 'active' : ''}`}
+                      className={`segmented-btn eli5 ${explanationStyle === 'eli5' ? 'active' : ''}`}
                       onClick={() => setExplanationStyle('eli5')}
                     >
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
                       ELI5
                     </button>
                     <button 
-                      className={`segmented-btn ${explanationStyle === 'professional' ? 'active' : ''}`}
+                      className={`segmented-btn professional ${explanationStyle === 'professional' ? 'active' : ''}`}
                       onClick={() => setExplanationStyle('professional')}
                     >
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
                       Professional
                     </button>
                     <button 
-                      className={`segmented-btn ${explanationStyle === 'step_by_step' ? 'active' : ''}`}
+                      className={`segmented-btn step-by-step ${explanationStyle === 'step_by_step' ? 'active' : ''}`}
                       onClick={() => setExplanationStyle('step_by_step')}
                     >
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
                       Step-by-Step
                     </button>
                     <button 
-                      className={`segmented-btn ${explanationStyle === 'examples' ? 'active' : ''}`}
+                      className={`segmented-btn examples ${explanationStyle === 'examples' ? 'active' : ''}`}
                       onClick={() => setExplanationStyle('examples')}
                     >
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A5 5 0 0 0 8 8c0 1 .5 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
