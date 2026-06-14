@@ -787,7 +787,12 @@ function App() {
                 <div className="dashboard-grid stagger-3">
                   {/* Multi-style learning sandbox */}
                   <div className="dashboard-feature-card playground-card">
-                    <div className="feature-card-header">
+                    <div className="window-chrome">
+                      <span className="chrome-dot red"></span>
+                      <span className="chrome-dot yellow"></span>
+                      <span className="chrome-dot green"></span>
+                    </div>
+                    <div className="feature-card-header" style={{ marginTop: '4px' }}>
                       <div className="feature-card-icon" style={{ color: '#2dd4bf', background: 'rgba(45, 212, 191, 0.08)' }}>
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
                       </div>
@@ -816,7 +821,12 @@ function App() {
 
                   {/* Quiz Simulator sandbox */}
                   <div className="dashboard-feature-card playground-card">
-                    <div className="feature-card-header">
+                    <div className="window-chrome">
+                      <span className="chrome-dot red"></span>
+                      <span className="chrome-dot yellow"></span>
+                      <span className="chrome-dot green"></span>
+                    </div>
+                    <div className="feature-card-header" style={{ marginTop: '4px' }}>
                       <div className="feature-card-icon" style={{ color: '#fb923c', background: 'rgba(251, 146, 60, 0.08)' }}>
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                       </div>
@@ -851,7 +861,12 @@ function App() {
 
                   {/* Study Plan milestones sandbox */}
                   <div className="dashboard-feature-card playground-card">
-                    <div className="feature-card-header">
+                    <div className="window-chrome">
+                      <span className="chrome-dot red"></span>
+                      <span className="chrome-dot yellow"></span>
+                      <span className="chrome-dot green"></span>
+                    </div>
+                    <div className="feature-card-header" style={{ marginTop: '4px' }}>
                       <div className="feature-card-icon" style={{ color: '#22c55e', background: 'rgba(34, 197, 94, 0.08)' }}>
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                       </div>
@@ -1049,11 +1064,76 @@ function App() {
                         <span className="d-stat-lbl">Quizzes Taken</span>
                       </div>
 
-                      <div className="dashboard-stat-card border-green">
+                      <div className="dashboard-stat-card border-green flex-row-layout">
                         <div className="stat-glow"></div>
-                        <span className="d-stat-val">{stats.quizzesTaken > 0 ? `${stats.avgScore}%` : '—'}</span>
-                        <span className="d-stat-lbl">Average Score</span>
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <span className="d-stat-val">{stats.quizzesTaken > 0 ? `${stats.avgScore}%` : '—'}</span>
+                          <span className="d-stat-lbl">Average Score</span>
+                        </div>
+                        {stats.quizzesTaken > 0 && (
+                          <div className="stat-ring-container">
+                            <svg width="36" height="36" viewBox="0 0 36 36" className="score-ring">
+                              <path
+                                className="ring-bg"
+                                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                              />
+                              <path
+                                className="ring-fg"
+                                strokeDasharray={`${stats.avgScore}, 100`}
+                                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                              />
+                            </svg>
+                          </div>
+                        )}
                       </div>
+                    </div>
+
+                    {/* Weekly Activity Graph */}
+                    <div className="activity-chart-card stagger-3">
+                      <h3 className="card-section-title">Weekly Learning Activity</h3>
+                      <p className="card-section-sub">Topics studied per day this week:</p>
+                      
+                      {(() => {
+                        const activity = [0, 0, 0, 0, 0, 0, 0];
+                        history.forEach(item => {
+                          try {
+                            const date = new Date(item.timestamp);
+                            let dayIdx = date.getDay(); // 0 = Sun, 1 = Mon...
+                            dayIdx = dayIdx === 0 ? 6 : dayIdx - 1;
+                            if (dayIdx >= 0 && dayIdx < 7) {
+                              activity[dayIdx]++;
+                            }
+                          } catch {
+                            // Skip items with invalid or missing date timestamps
+                          }
+                        });
+                        
+                        const maxVal = Math.max(...activity, 1);
+                        const daysLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+                        const daysFull = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+                        return (
+                          <div className="chart-bar-container">
+                            {activity.map((val, idx) => {
+                              const pct = Math.min((val / maxVal) * 100, 100);
+                              const barHeight = val > 0 ? `${Math.max(pct, 12)}%` : '4%';
+                              return (
+                                <div key={idx} className="chart-column" title={`${daysFull[idx]}: ${val} concept(s)`}>
+                                  <div className="chart-bar-wrapper">
+                                    <div 
+                                      className={`chart-bar-fill ${val > 0 ? 'active' : ''}`}
+                                      style={{ height: barHeight }}
+                                    >
+                                      {val > 0 && <span className="chart-bar-tooltip">{val}</span>}
+                                    </div>
+                                  </div>
+                                  <span className="chart-bar-label">{daysLabels[idx]}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     {/* Popular Topics widget */}
