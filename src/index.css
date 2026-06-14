@@ -2057,11 +2057,14 @@ body::after {
   margin-top: 4px;
 }
 
-/* Stats Analytics vertical grid */
 .analytics-vertical-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
+}
+
+.analytics-vertical-grid .dashboard-stat-card:nth-child(3) {
+  grid-column: span 2;
 }
 
 .dashboard-stat-card {

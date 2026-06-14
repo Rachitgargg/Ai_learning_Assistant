@@ -995,12 +995,6 @@ function App() {
                         <span className="d-stat-val">{stats.quizzesTaken > 0 ? `${stats.avgScore}%` : '—'}</span>
                         <span className="d-stat-lbl">Average Score</span>
                       </div>
-
-                      <div className="dashboard-stat-card border-amber">
-                        <div className="stat-glow"></div>
-                        <span className="d-stat-val">{history.length * 1.5} hrs</span>
-                        <span className="d-stat-lbl">Estimated Study Time</span>
-                      </div>
                     </div>
 
                     {/* Popular Topics widget */}
