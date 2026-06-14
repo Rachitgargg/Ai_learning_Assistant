@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getExplanations, getQuiz, getStudyPlan, generateFallbackVisualMap } from './services/ai';
+import { fetchHistory, saveHistoryItem, deleteHistoryItem, fetchStats, saveStats } from './services/supabase';
 import './App.css'; // Importing template styling just in case, but index.css contains our primary design tokens
 
 // --- Simple Inline Markdown Parser ---
@@ -209,6 +210,12 @@ function App() {
   const [customBaseUrl, setCustomBaseUrl] = useState(() => {
     return localStorage.getItem('ai_tutor_custom_url') || import.meta.env.VITE_GROQ_API_BASE_URL || '';
   });
+  const [supabaseUrl, setSupabaseUrl] = useState(() => {
+    return localStorage.getItem('supabase_url') || import.meta.env.VITE_SUPABASE_URL || '';
+  });
+  const [supabaseAnonKey, setSupabaseAnonKey] = useState(() => {
+    return localStorage.getItem('supabase_anon_key') || import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+  });
   const [showSettings, setShowSettings] = useState(false);
   const [apiKeyVisible, setApiKeyVisible] = useState(false);
 
@@ -255,6 +262,28 @@ function App() {
     localStorage.setItem('ai_tutor_stats', JSON.stringify(stats));
   }, [stats]);
 
+  // Load from Supabase on startup
+  useEffect(() => {
+    const loadSupabaseData = async () => {
+      if (supabaseUrl && supabaseAnonKey) {
+        try {
+          const dbHistory = await fetchHistory(supabaseUrl, supabaseAnonKey);
+          if (dbHistory && dbHistory.length > 0) {
+            setHistory(dbHistory);
+          }
+          const dbStats = await fetchStats(supabaseUrl, supabaseAnonKey);
+          if (dbStats) {
+            setStats(dbStats);
+          }
+        } catch (err) {
+          console.error("Failed to load startup data from Supabase:", err);
+          // Fall back gracefully to local cache
+        }
+      }
+    };
+    loadSupabaseData();
+  }, [supabaseUrl, supabaseAnonKey]);
+
   // --- Visual Map State ---
   const [selectedMapNodeId, setSelectedMapNodeId] = useState(null);
 
@@ -284,13 +313,15 @@ function App() {
           }
           return phase;
         });
-        return {
+        const updated = {
           ...topic,
           studyPlan: {
             ...topic.studyPlan,
             timeline: updatedTimeline
           }
         };
+        saveHistoryItem(updated, supabaseUrl, supabaseAnonKey).catch(err => console.error("Failed to sync dashboard task toggle to Supabase:", err));
+        return updated;
       }
       return topic;
     }));
@@ -326,6 +357,7 @@ function App() {
       const newTopic = createTopicObject(query, data);
 
       setHistory(prev => [newTopic, ...prev]);
+      saveHistoryItem(newTopic, supabaseUrl, supabaseAnonKey).catch(err => console.error("Failed to sync new topic to Supabase:", err));
       setCurrentTopicId(newTopic.id);
       setActiveTab('explain');
       setExplanationStyle('eli5');
@@ -358,7 +390,9 @@ function App() {
       // Update history list with generated quiz
       setHistory(prev => prev.map(item => {
         if (item.id === activeTopic.id) {
-          return { ...item, quizzes: quizQuestions };
+          const updated = { ...item, quizzes: quizQuestions };
+          saveHistoryItem(updated, supabaseUrl, supabaseAnonKey).catch(err => console.error("Failed to sync quiz to Supabase:", err));
+          return updated;
         }
         return item;
       }));
@@ -407,7 +441,9 @@ function App() {
 
       setHistory(prev => prev.map(item => {
         if (item.id === activeTopic.id) {
-          return { ...item, studyPlan: plan };
+          const updated = { ...item, studyPlan: plan };
+          saveHistoryItem(updated, supabaseUrl, supabaseAnonKey).catch(err => console.error("Failed to sync study plan to Supabase:", err));
+          return updated;
         }
         return item;
       }));
@@ -444,11 +480,13 @@ function App() {
       setStats(prev => {
         const nextTaken = prev.quizzesTaken + 1;
         const nextTotal = prev.totalScores + correctCount;
-        return {
+        const nextStats = {
           quizzesTaken: nextTaken,
           totalScores: nextTotal,
           avgScore: Math.round((nextTotal / (nextTaken * 5)) * 100)
         };
+        saveStats(nextStats, supabaseUrl, supabaseAnonKey).catch(err => console.error("Failed to sync stats to Supabase:", err));
+        return nextStats;
       });
 
       setQuizCompleted(true);
@@ -475,13 +513,15 @@ function App() {
 
     setHistory(prev => prev.map(item => {
       if (item.id === activeTopic.id) {
-        return {
+        const updated = {
           ...item,
           studyPlan: {
             ...item.studyPlan,
             timeline: updatedTimeline
           }
         };
+        saveHistoryItem(updated, supabaseUrl, supabaseAnonKey).catch(err => console.error("Failed to sync task toggle to Supabase:", err));
+        return updated;
       }
       return item;
     }));
@@ -493,13 +533,32 @@ function App() {
     if (currentTopicId === id) {
       setCurrentTopicId(null);
     }
+    deleteHistoryItem(id, supabaseUrl, supabaseAnonKey).catch(err => console.error("Failed to delete topic from Supabase:", err));
   };
 
-  const handleSaveSettings = () => {
+  const handleSaveSettings = async () => {
     localStorage.setItem('ai_tutor_api_key', apiKey);
     localStorage.setItem('ai_tutor_model', model);
     localStorage.setItem('ai_tutor_custom_url', customBaseUrl);
+    localStorage.setItem('supabase_url', supabaseUrl);
+    localStorage.setItem('supabase_anon_key', supabaseAnonKey);
     setShowSettings(false);
+
+    if (supabaseUrl && supabaseAnonKey) {
+      try {
+        const dbHistory = await fetchHistory(supabaseUrl, supabaseAnonKey);
+        if (dbHistory) {
+          setHistory(dbHistory);
+        }
+        const dbStats = await fetchStats(supabaseUrl, supabaseAnonKey);
+        if (dbStats) {
+          setStats(dbStats);
+        }
+      } catch (err) {
+        console.error("Failed to load from Supabase on save config:", err);
+        setError("Supabase Connection Failed: " + err.message);
+      }
+    }
   };
 
   const startRetakeQuiz = () => {
@@ -1528,6 +1587,32 @@ function App() {
                   placeholder="https://api.groq.com/openai/v1 or https://api.openai.com/v1"
                   value={customBaseUrl}
                   onChange={(e) => setCustomBaseUrl(e.target.value)}
+                />
+              </div>
+
+              <div style={{ margin: '16px 0 8px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
+                <span className="section-header-text">Supabase Cloud Sync</span>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Supabase Project URL</label>
+                <input 
+                  type="text"
+                  className="form-input"
+                  placeholder="https://your-project-id.supabase.co"
+                  value={supabaseUrl}
+                  onChange={(e) => setSupabaseUrl(e.target.value)}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Supabase Anon Public Key</label>
+                <input 
+                  type="password"
+                  className="form-input"
+                  placeholder="eyJhbGciOiJIUzI1NiIsIn..."
+                  value={supabaseAnonKey}
+                  onChange={(e) => setSupabaseAnonKey(e.target.value)}
                 />
               </div>
             </div>
