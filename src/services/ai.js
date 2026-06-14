@@ -36,6 +36,45 @@ async function callOpenAI({ path, apiKey, body, customBaseUrl }) {
   return response.json();
 }
 
+function extractExplanationKeys(content) {
+  const normalized = {};
+  for (const key of Object.keys(content)) {
+    const normKey = key.toLowerCase().replace(/[^a-z0-9]/g, '');
+    normalized[normKey] = content[key];
+  }
+
+  // Find eli5
+  const eli5Key = Object.keys(normalized).find(k => k.includes('eli5') || k.includes('explainlikeim5') || k.includes('simple'));
+  const eli5 = eli5Key ? normalized[eli5Key] : (normalized['eli5'] || '');
+
+  // Find professional
+  const profKey = Object.keys(normalized).find(k => k.includes('professional') || k.includes('technical') || k.includes('detailed'));
+  const professional = profKey ? normalized[profKey] : (normalized['professional'] || '');
+
+  // Find step_by_step
+  const stepKey = Object.keys(normalized).find(k => k.includes('step') || k.includes('tutorial') || k.includes('guide'));
+  const step_by_step = stepKey ? normalized[stepKey] : (normalized['stepbystep'] || '');
+
+  // Find examples
+  const exKey = Object.keys(normalized).find(k => k.includes('example') || k.includes('case') || k.includes('realworld'));
+  const examples = exKey ? normalized[exKey] : (normalized['examples'] || '');
+
+  // Find follow_ups
+  const fuKey = Object.keys(normalized).find(k => k.includes('follow'));
+  let follow_ups = fuKey ? normalized[fuKey] : (normalized['followups'] || []);
+  if (!Array.isArray(follow_ups)) {
+    follow_ups = [];
+  }
+
+  return {
+    eli5: typeof eli5 === 'string' ? eli5 : (eli5 ? JSON.stringify(eli5) : ''),
+    professional: typeof professional === 'string' ? professional : (professional ? JSON.stringify(professional) : ''),
+    step_by_step: typeof step_by_step === 'string' ? step_by_step : (step_by_step ? JSON.stringify(step_by_step) : ''),
+    examples: typeof examples === 'string' ? examples : (examples ? JSON.stringify(examples) : ''),
+    follow_ups
+  };
+}
+
 /**
  * Fetch explanations in 4 teaching styles for a given concept.
  */
@@ -76,12 +115,13 @@ You MUST respond with a valid JSON object matching this schema:
 
   try {
     const content = JSON.parse(result.choices[0].message.content);
+    const extracted = extractExplanationKeys(content);
     return {
-      eli5: content.eli5 || 'No ELI5 explanation generated.',
-      professional: content.professional || 'No Professional explanation generated.',
-      step_by_step: content.step_by_step || 'No Step-by-Step explanation generated.',
-      examples: content.examples || 'No Examples explanation generated.',
-      follow_ups: Array.isArray(content.follow_ups) ? content.follow_ups : [],
+      eli5: extracted.eli5 || 'No ELI5 explanation generated.',
+      professional: extracted.professional || 'No Professional explanation generated.',
+      step_by_step: extracted.step_by_step || 'No Step-by-Step explanation generated.',
+      examples: extracted.examples || 'No Examples explanation generated.',
+      follow_ups: extracted.follow_ups,
     };
   } catch (err) {
     throw new Error('Failed to parse explanation response from OpenAI: ' + err.message, { cause: err });
