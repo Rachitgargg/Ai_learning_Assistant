@@ -534,11 +534,19 @@ function App() {
 
           {/* --- Loading Panel --- */}
           {loading ? (
-            <div className="loading-panel">
-              <div className="spinner"></div>
-              <div className="loading-text">
-                {loadingMessage}
-                <div className="loading-subtext" style={{ marginTop: '8px' }}>
+            <div className="explanation-card animate-fade-in stagger-1" style={{ opacity: 0.85 }}>
+              <div className="skeleton-loader">
+                <div className="skeleton-line header"></div>
+                <div className="skeleton-line"></div>
+                <div className="skeleton-line"></div>
+                <div className="skeleton-line short"></div>
+                <div style={{ height: '12px' }}></div>
+                <div className="skeleton-line"></div>
+                <div className="skeleton-line short"></div>
+              </div>
+              <div style={{ marginTop: '28px', textAlign: 'center' }}>
+                <div className="loading-text" style={{ fontWeight: 500 }}>{loadingMessage}</div>
+                <div className="loading-subtext" style={{ marginTop: '6px', color: 'var(--text-muted)' }}>
                   Please hold on while we structure your customized explanation.
                 </div>
               </div>
@@ -563,13 +571,18 @@ function App() {
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') handleSearch();
                     }}
+                    disabled={loading}
                   />
-                  <button onClick={() => handleSearch()} className="search-btn">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <circle cx="11" cy="11" r="8"></circle>
-                      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                    </svg>
-                    Explain
+                  <button onClick={() => handleSearch()} className="search-btn" disabled={loading}>
+                    {loading ? (
+                      <span className="button-spinner"></span>
+                    ) : (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                      </svg>
+                    )}
+                    {loading ? 'Thinking...' : 'Explain'}
                   </button>
                 </div>
               </div>
@@ -589,7 +602,7 @@ function App() {
           ) : (
             /* --- Active Learning Workspace --- */
             <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-              <div className="topic-header animate-fade-in">
+              <div className="topic-header animate-fade-in stagger-1">
                 <div className="topic-header-left">
                   <div className="topic-badge">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -605,7 +618,7 @@ function App() {
               </div>
 
               {/* Tab Navigation */}
-              <nav className="pill-tab-bar">
+              <nav className="pill-tab-bar stagger-2">
                 <button 
                   className={`pill-tab-btn ${activeTab === 'explain' ? 'active' : ''}`}
                   onClick={() => setActiveTab('explain')}
@@ -639,8 +652,8 @@ function App() {
 
               {/* --- TAB: Explanations --- */}
               {activeTab === 'explain' && (
-                <div className="animate-fade-in">
-                  <div className="segmented-control">
+                <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <div className="segmented-control stagger-3">
                     <button 
                       className={`segmented-btn ${explanationStyle === 'eli5' ? 'active' : ''}`}
                       onClick={() => setExplanationStyle('eli5')}
@@ -672,7 +685,7 @@ function App() {
                   </div>
 
                   {(!activeTopic.explanations[explanationStyle] || activeTopic.explanations[explanationStyle].startsWith('No ')) ? (
-                    <div className="empty-state-card">
+                    <div key={`empty-${explanationStyle}`} className="empty-state-card stagger-4">
                       <div className="empty-state-icon">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <circle cx="12" cy="12" r="10"></circle>
@@ -690,13 +703,13 @@ function App() {
                       </button>
                     </div>
                   ) : (
-                    <div className="explanation-card">
+                    <div key={explanationStyle} className="explanation-card stagger-4">
                       {renderMarkdown(activeTopic.explanations[explanationStyle])}
                     </div>
                   )}
 
                   {activeTopic.followUps && activeTopic.followUps.length > 0 && (
-                    <div className="follow-ups-section">
+                    <div className="follow-ups-section stagger-4">
                       <div className="section-header-divider">
                         <span className="section-header-text">
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -729,11 +742,18 @@ function App() {
               {activeTab === 'quiz' && (
                 <div className="quiz-wrapper">
                   {quizLoading ? (
-                    <div className="loading-panel">
-                      <div className="spinner"></div>
-                      <div className="loading-text">
-                        Creating customized quiz questions...
-                        <div className="loading-subtext" style={{ marginTop: '8px' }}>
+                    <div className="quiz-question-card animate-fade-in stagger-3" style={{ opacity: 0.85 }}>
+                      <div className="skeleton-loader">
+                        <div className="skeleton-line header"></div>
+                        <div className="skeleton-line"></div>
+                        <div className="skeleton-line short"></div>
+                        <div style={{ height: '10px' }}></div>
+                        <div className="skeleton-line"></div>
+                        <div className="skeleton-line"></div>
+                      </div>
+                      <div style={{ marginTop: '24px', textAlign: 'center' }}>
+                        <div className="loading-text" style={{ fontWeight: 500 }}>Creating customized quiz questions...</div>
+                        <div className="loading-subtext" style={{ marginTop: '6px', color: 'var(--text-muted)' }}>
                           Designing tests based on your learning topic history.
                         </div>
                       </div>
@@ -856,11 +876,18 @@ function App() {
               {activeTab === 'plan' && (
                 <div className="plan-wrapper">
                   {planLoading ? (
-                    <div className="loading-panel">
-                      <div className="spinner"></div>
-                      <div className="loading-text">
-                        Structuring your learning schedule...
-                        <div className="loading-subtext" style={{ marginTop: '8px' }}>
+                    <div className="plan-form-card animate-fade-in stagger-3" style={{ opacity: 0.85 }}>
+                      <div className="skeleton-loader">
+                        <div className="skeleton-line header" style={{ width: '50%' }}></div>
+                        <div className="skeleton-line"></div>
+                        <div className="skeleton-line short"></div>
+                        <div style={{ height: '10px' }}></div>
+                        <div className="skeleton-line"></div>
+                        <div className="skeleton-line short"></div>
+                      </div>
+                      <div style={{ marginTop: '24px', textAlign: 'center' }}>
+                        <div className="loading-text" style={{ fontWeight: 500 }}>Structuring your learning schedule...</div>
+                        <div className="loading-subtext" style={{ marginTop: '6px', color: 'var(--text-muted)' }}>
                           Personalizing study milestones based on your available time.
                         </div>
                       </div>
