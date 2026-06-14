@@ -132,13 +132,13 @@ function createTopicObject(query, data) {
 function App() {
   // --- Settings State ---
   const [apiKey, setApiKey] = useState(() => {
-    return localStorage.getItem('ai_tutor_api_key') || import.meta.env.VITE_OPENAI_API_KEY || '';
+    return localStorage.getItem('ai_tutor_api_key') || import.meta.env.VITE_GROQ_API_KEY || import.meta.env.VITE_OPENAI_API_KEY || '';
   });
   const [model, setModel] = useState(() => {
-    return localStorage.getItem('ai_tutor_model') || 'gpt-4o-mini';
+    return localStorage.getItem('ai_tutor_model') || import.meta.env.VITE_GROQ_DEFAULT_MODEL || 'llama-3.1-8b-instant';
   });
   const [customBaseUrl, setCustomBaseUrl] = useState(() => {
-    return localStorage.getItem('ai_tutor_custom_url') || '';
+    return localStorage.getItem('ai_tutor_custom_url') || import.meta.env.VITE_GROQ_API_BASE_URL || '';
   });
   const [showSettings, setShowSettings] = useState(false);
   const [apiKeyVisible, setApiKeyVisible] = useState(false);
@@ -973,9 +973,12 @@ function App() {
                   value={model}
                   onChange={(e) => setModel(e.target.value)}
                 >
-                  <option value="gpt-4o-mini">gpt-4o-mini (Recommended - Fast & Cost-efficient)</option>
-                  <option value="gpt-4o">gpt-4o (Most Capable)</option>
-                  <option value="gpt-3.5-turbo">gpt-3.5-turbo (Legacy)</option>
+                  <option value="llama-3.1-8b-instant">Llama 3.1 8B Instant (Groq - Recommended Fast)</option>
+                  <option value="llama-3.3-70b-versatile">Llama 3.3 70B Versatile (Groq - Capable)</option>
+                  <option value="mixtral-8x7b-32768">Mixtral 8x7B (Groq)</option>
+                  <option value="gpt-4o-mini">gpt-4o-mini (OpenAI - Fast)</option>
+                  <option value="gpt-4o">gpt-4o (OpenAI - Capable)</option>
+                  <option value="gpt-3.5-turbo">gpt-3.5-turbo (OpenAI - Legacy)</option>
                 </select>
               </div>
 
@@ -984,7 +987,7 @@ function App() {
                 <input 
                   type="text"
                   className="form-input"
-                  placeholder="https://api.openai.com/v1"
+                  placeholder="https://api.groq.com/openai/v1 or https://api.openai.com/v1"
                   value={customBaseUrl}
                   onChange={(e) => setCustomBaseUrl(e.target.value)}
                 />
