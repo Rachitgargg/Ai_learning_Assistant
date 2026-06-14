@@ -406,8 +406,8 @@ function App() {
       {/* --- Sidebar Section --- */}
       <aside className="sidebar">
         <div className="sidebar-header">
-          <div className="app-logo">A</div>
-          <span className="app-title">AI Learning Hub</span>
+          <div className="app-logo">L</div>
+          <span className="app-title">Luminos</span>
         </div>
 
         <button 
@@ -545,10 +545,11 @@ function App() {
             </div>
           ) : !activeTopic ? (
             /* --- Welcome Panel (Zero State) --- */
-            <div className="welcome-panel">
-              <h1 className="welcome-title">Master Any Concept</h1>
+            <div className="welcome-panel animate-fade-in">
+              <div className="welcome-logo-glow">L</div>
+              <h1 className="welcome-title">Understand Anything</h1>
               <p className="welcome-subtitle">
-                Enter any topic, question, or technology below. Your personal AI tutor will breakdown the answer in four different styles instantly.
+                Enter any concept or question. <strong>Luminos</strong> breaks it down into four adaptable explanation styles instantly.
               </p>
 
               <div className="search-container">
@@ -588,21 +589,32 @@ function App() {
           ) : (
             /* --- Active Learning Workspace --- */
             <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-              <div className="topic-title-area">
-                <h1 className="topic-title">{activeTopic.topic}</h1>
-                <div className="topic-meta">Created {activeTopic.timestamp}</div>
+              <div className="topic-header animate-fade-in">
+                <div className="topic-header-left">
+                  <div className="topic-badge">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                    </svg>
+                  </div>
+                  <h1 className="topic-title">{activeTopic.topic}</h1>
+                </div>
+                <div className="topic-header-right">
+                  <span>Created {activeTopic.timestamp}</span>
+                </div>
               </div>
 
               {/* Tab Navigation */}
-              <nav className="tab-nav">
+              <nav className="pill-tab-bar">
                 <button 
-                  className={`tab-btn ${activeTab === 'explain' ? 'active' : ''}`}
+                  className={`pill-tab-btn ${activeTab === 'explain' ? 'active' : ''}`}
                   onClick={() => setActiveTab('explain')}
                 >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
                   Explanations
                 </button>
                 <button 
-                  className={`tab-btn ${activeTab === 'quiz' ? 'active' : ''}`}
+                  className={`pill-tab-btn ${activeTab === 'quiz' ? 'active' : ''}`}
                   onClick={() => {
                     setActiveTab('quiz');
                     // Reset quiz options if already took it
@@ -613,12 +625,14 @@ function App() {
                     }
                   }}
                 >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                   Quiz Generator
                 </button>
                 <button 
-                  className={`tab-btn ${activeTab === 'plan' ? 'active' : ''}`}
+                  className={`pill-tab-btn ${activeTab === 'plan' ? 'active' : ''}`}
                   onClick={() => setActiveTab('plan')}
                 >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                   Study Plan
                 </button>
               </nav>
@@ -626,40 +640,74 @@ function App() {
               {/* --- TAB: Explanations --- */}
               {activeTab === 'explain' && (
                 <div className="animate-fade-in">
-                  <div className="style-selector">
+                  <div className="segmented-control">
                     <button 
-                      className={`style-btn ${explanationStyle === 'eli5' ? 'active' : ''}`}
+                      className={`segmented-btn ${explanationStyle === 'eli5' ? 'active' : ''}`}
                       onClick={() => setExplanationStyle('eli5')}
                     >
-                      👶 ELI5 (Explain Like I'm 5)
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+                      ELI5
                     </button>
                     <button 
-                      className={`style-btn ${explanationStyle === 'professional' ? 'active' : ''}`}
+                      className={`segmented-btn ${explanationStyle === 'professional' ? 'active' : ''}`}
                       onClick={() => setExplanationStyle('professional')}
                     >
-                      💼 Professional
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+                      Professional
                     </button>
                     <button 
-                      className={`style-btn ${explanationStyle === 'step_by_step' ? 'active' : ''}`}
+                      className={`segmented-btn ${explanationStyle === 'step_by_step' ? 'active' : ''}`}
                       onClick={() => setExplanationStyle('step_by_step')}
                     >
-                      🪜 Step-by-Step
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                      Step-by-Step
                     </button>
                     <button 
-                      className={`style-btn ${explanationStyle === 'examples' ? 'active' : ''}`}
+                      className={`segmented-btn ${explanationStyle === 'examples' ? 'active' : ''}`}
                       onClick={() => setExplanationStyle('examples')}
                     >
-                      💡 Examples
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A5 5 0 0 0 8 8c0 1 .5 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
+                      Examples
                     </button>
                   </div>
 
-                  <div className="explanation-card">
-                    {renderMarkdown(activeTopic.explanations[explanationStyle])}
-                  </div>
+                  {(!activeTopic.explanations[explanationStyle] || activeTopic.explanations[explanationStyle].startsWith('No ')) ? (
+                    <div className="empty-state-card">
+                      <div className="empty-state-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="10"></circle>
+                          <line x1="12" y1="16" x2="12" y2="12"></line>
+                          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                        </svg>
+                      </div>
+                      <h4 className="empty-state-title">Explanation Unavailable</h4>
+                      <p className="empty-state-subtitle">
+                        We don't have a cached explanation for the "{explanationStyle}" style. Click below to generate it.
+                      </p>
+                      <button onClick={() => handleSearch(activeTopic.topic)} className="btn-generate">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                        Generate Explanation
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="explanation-card">
+                      {renderMarkdown(activeTopic.explanations[explanationStyle])}
+                    </div>
+                  )}
 
                   {activeTopic.followUps && activeTopic.followUps.length > 0 && (
                     <div className="follow-ups-section">
-                      <div className="follow-ups-title">Deepen Your Understanding</div>
+                      <div className="section-header-divider">
+                        <span className="section-header-text">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="16" x2="12" y2="12"></line>
+                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                          </svg>
+                          Deepen Your Understanding
+                        </span>
+                        <div className="section-header-line"></div>
+                      </div>
                       <div className="follow-ups-list">
                         {activeTopic.followUps.map((q, idx) => (
                           <button 
