@@ -847,7 +847,7 @@ function App() {
                       const hr = new Date().getHours();
                       if (hr < 12) return 'Good morning, Scholar ☕';
                       if (hr < 17) return 'Good afternoon, Explorer ☀️';
-                      return 'Good evening, Master 🌙';
+                      return 'Good evening, Scholar ☕';
                     })()}
                   </h1>
                   <p className="session-dashboard-sub">
