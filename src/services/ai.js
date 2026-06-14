@@ -36,7 +36,35 @@ async function callOpenAI({ path, apiKey, body, customBaseUrl }) {
   return response.json();
 }
 
-function extractExplanationKeys(content) {
+export function generateFallbackVisualMap(concept) {
+  return {
+    center: concept || 'Concept',
+    nodes: [
+      {
+        id: 'fallback-node-1',
+        title: 'Core Fundamentals',
+        description: `Understanding the essential foundations and definitions of ${concept || 'this topic'}.`
+      },
+      {
+        id: 'fallback-node-2',
+        title: 'Key Applications',
+        description: `How ${concept || 'this topic'} is utilized in real-world scenarios and industries.`
+      },
+      {
+        id: 'fallback-node-3',
+        title: 'Standard Methodologies',
+        description: `The practical steps, procedures, or algorithms commonly associated with ${concept || 'this topic'}.`
+      },
+      {
+        id: 'fallback-node-4',
+        title: 'Advanced Outlook',
+        description: `Future trends, theoretical extensions, or complex nuances of ${concept || 'this topic'}.`
+      }
+    ]
+  };
+}
+
+function extractExplanationKeys(content, concept) {
   const normalized = {};
   for (const key of Object.keys(content)) {
     const normKey = key.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -66,17 +94,27 @@ function extractExplanationKeys(content) {
     follow_ups = [];
   }
 
+  // Find visual_map
+  const vmKey = Object.keys(normalized).find(k => k.includes('visual') || k.includes('map') || k.includes('diagram'));
+  let visual_map = vmKey ? normalized[vmKey] : (normalized['visualmap'] || null);
+
+  // Validate visual map
+  if (!visual_map || typeof visual_map !== 'object' || !visual_map.nodes || !Array.isArray(visual_map.nodes)) {
+    visual_map = generateFallbackVisualMap(concept);
+  }
+
   return {
     eli5: typeof eli5 === 'string' ? eli5 : (eli5 ? JSON.stringify(eli5) : ''),
     professional: typeof professional === 'string' ? professional : (professional ? JSON.stringify(professional) : ''),
     step_by_step: typeof step_by_step === 'string' ? step_by_step : (step_by_step ? JSON.stringify(step_by_step) : ''),
     examples: typeof examples === 'string' ? examples : (examples ? JSON.stringify(examples) : ''),
-    follow_ups
+    follow_ups,
+    visual_map
   };
 }
 
 /**
- * Fetch explanations in 4 teaching styles for a given concept.
+ * Fetch explanations in 5 teaching styles (including visual map) for a given concept.
  */
 export async function getExplanations({ concept, apiKey, model = 'gpt-4o-mini', customBaseUrl }) {
   const systemPrompt = `You are an expert tutor. Provide explanations of the concept requested by the user in four different teaching styles:
@@ -87,13 +125,24 @@ export async function getExplanations({ concept, apiKey, model = 'gpt-4o-mini', 
 
 Also, provide exactly 3 short, relevant follow-up questions that the user might ask to deepen their understanding of this concept.
 
+In addition, provide a visual concept mind map that outlines the core concept and exactly 4 subtopics. For each subtopic, provide a brief 1-2 sentence description.
+
 You MUST respond with a valid JSON object matching this schema:
 {
   "eli5": "string (explain like I'm 5, markdown format supported)",
   "professional": "string (technical explanation, markdown format supported)",
   "step_by_step": "string (step-by-step tutorial, markdown format supported)",
   "examples": "string (code and/or practical examples, markdown format supported)",
-  "follow_ups": ["string", "string", "string"]
+  "follow_ups": ["string", "string", "string"],
+  "visual_map": {
+    "center": "Central Concept Title",
+    "nodes": [
+      { "id": "node-1", "title": "Subtopic 1 Title", "description": "Short explanation of subtopic 1..." },
+      { "id": "node-2", "title": "Subtopic 2 Title", "description": "Short explanation of subtopic 2..." },
+      { "id": "node-3", "title": "Subtopic 3 Title", "description": "Short explanation of subtopic 3..." },
+      { "id": "node-4", "title": "Subtopic 4 Title", "description": "Short explanation of subtopic 4..." }
+    ]
+  }
 }`;
 
   const userPrompt = `Concept to explain: ${concept}`;
@@ -115,13 +164,14 @@ You MUST respond with a valid JSON object matching this schema:
 
   try {
     const content = JSON.parse(result.choices[0].message.content);
-    const extracted = extractExplanationKeys(content);
+    const extracted = extractExplanationKeys(content, concept);
     return {
       eli5: extracted.eli5 || 'No ELI5 explanation generated.',
       professional: extracted.professional || 'No Professional explanation generated.',
       step_by_step: extracted.step_by_step || 'No Step-by-Step explanation generated.',
       examples: extracted.examples || 'No Examples explanation generated.',
       follow_ups: extracted.follow_ups,
+      visual_map: extracted.visual_map
     };
   } catch (err) {
     throw new Error('Failed to parse explanation response from OpenAI: ' + err.message, { cause: err });

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getExplanations, getQuiz, getStudyPlan } from './services/ai';
+import { getExplanations, getQuiz, getStudyPlan, generateFallbackVisualMap } from './services/ai';
 import './App.css'; // Importing template styling just in case, but index.css contains our primary design tokens
 
 // --- Simple Inline Markdown Parser ---
@@ -123,10 +123,79 @@ function createTopicObject(query, data) {
       step_by_step: data.step_by_step,
       examples: data.examples
     },
+    visualMap: data.visual_map,
     followUps: data.follow_ups,
     quizzes: null, // to be generated on-demand
     studyPlan: null // to be generated on-demand
   };
+}
+
+// --- Visual Mind Map Component ---
+function VisualConceptMap({ visualMap, onSelectNode, selectedNodeId }) {
+  if (!visualMap || !visualMap.nodes || !Array.isArray(visualMap.nodes)) return null;
+
+  const centerNodeTitle = visualMap.center || "Concept";
+  const nodes = visualMap.nodes.slice(0, 4); // Limit to 4 subtopics for a clean 4-quadrant layout
+
+  // Symmetrical percentage-based positions around a 50%, 50% center
+  // 0: Top-Left, 1: Top-Right, 2: Bottom-Left, 3: Bottom-Right
+  const nodePositions = [
+    { left: '4%', top: '4%', accentClass: 'eli5' },
+    { right: '4%', top: '4%', accentClass: 'professional' },
+    { left: '4%', bottom: '4%', accentClass: 'step-by-step' },
+    { right: '4%', bottom: '4%', accentClass: 'examples' }
+  ];
+
+  return (
+    <div className="concept-map-container">
+      {/* SVG Connections overlay */}
+      <svg className="concept-map-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+        {/* Draw smooth bezier curve paths from center (50, 50) to the four corner positions */}
+        <path d="M 50,50 C 35,50 22,35 22,20" className={`map-path path-0 ${selectedNodeId === nodes[0]?.id ? 'active' : ''}`} />
+        <path d="M 50,50 C 65,50 78,35 78,20" className={`map-path path-1 ${selectedNodeId === nodes[1]?.id ? 'active' : ''}`} />
+        <path d="M 50,50 C 35,50 22,65 22,80" className={`map-path path-2 ${selectedNodeId === nodes[2]?.id ? 'active' : ''}`} />
+        <path d="M 50,50 C 65,50 78,65 78,80" className={`map-path path-3 ${selectedNodeId === nodes[3]?.id ? 'active' : ''}`} />
+      </svg>
+
+      {/* Central Concept Node */}
+      <div className="map-node map-node-center">
+        <div className="node-glow"></div>
+        <div className="node-content">
+          <span className="node-category">Core Concept</span>
+          <h4 className="node-title-text">{centerNodeTitle}</h4>
+        </div>
+      </div>
+
+      {/* Peripheral Subtopic Nodes */}
+      {nodes.map((node, index) => {
+        const pos = nodePositions[index];
+        const isSelected = selectedNodeId === node.id;
+        const style = {
+          position: 'absolute',
+          left: pos.left,
+          right: pos.right,
+          top: pos.top,
+          bottom: pos.bottom
+        };
+
+        return (
+          <div 
+            key={node.id || index} 
+            className={`map-node map-node-sub ${pos.accentClass} ${isSelected ? 'active' : ''}`}
+            style={style}
+            onClick={() => onSelectNode(node.id)}
+          >
+            <div className="node-glow"></div>
+            <div className="node-content">
+              <span className="node-number">0{index + 1}</span>
+              <h5 className="node-title-text">{node.title}</h5>
+              <span className="node-action-text">{isSelected ? 'Selected' : 'Click to Inspect'}</span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 function App() {
@@ -185,6 +254,47 @@ function App() {
   useEffect(() => {
     localStorage.setItem('ai_tutor_stats', JSON.stringify(stats));
   }, [stats]);
+
+  // --- Visual Map State ---
+  const [selectedMapNodeId, setSelectedMapNodeId] = useState(null);
+
+  // --- Homepage Playgrounds State ---
+  const [sandboxStyle, setSandboxStyle] = useState('eli5');
+  const [sandboxQuizSelected, setSandboxQuizSelected] = useState(null); // null | 0 | 1 | 2 | 3
+  const [sandboxTasks, setSandboxTasks] = useState([
+    { id: 'sb-1', text: 'Day 1: Understand Neurons & Activation', completed: false },
+    { id: 'sb-2', text: 'Day 2: Implement Single Layer Perceptron', completed: false },
+    { id: 'sb-3', text: 'Day 3: Train Network with Backprop', completed: false }
+  ]);
+
+  const handleToggleDashboardTask = (topicId, phaseId, taskId) => {
+    setHistory(prev => prev.map(topic => {
+      if (topic.id === topicId && topic.studyPlan) {
+        const updatedTimeline = topic.studyPlan.timeline.map(phase => {
+          if (phase.id === phaseId) {
+            return {
+              ...phase,
+              tasks: phase.tasks.map(task => {
+                if (task.id === taskId) {
+                  return { ...task, completed: !task.completed };
+                }
+                return task;
+              })
+            };
+          }
+          return phase;
+        });
+        return {
+          ...topic,
+          studyPlan: {
+            ...topic.studyPlan,
+            timeline: updatedTimeline
+          }
+        };
+      }
+      return topic;
+    }));
+  };
 
   // Find active topic
   const activeTopic = history.find(item => item.id === currentTopicId);
@@ -552,53 +662,367 @@ function App() {
               </div>
             </div>
           ) : !activeTopic ? (
-            /* --- Welcome Panel (Zero State) --- */
-            <div className="welcome-panel animate-fade-in">
-              <div className="welcome-logo-glow">L</div>
-              <h1 className="welcome-title">Understand Anything</h1>
-              <p className="welcome-subtitle">
-                Enter any concept or question. <strong>Luminos</strong> breaks it down into four adaptable explanation styles instantly.
-              </p>
+            history.length === 0 ? (
+              /* --- Brand New User Welcome Panel (Feature Playgrounds) --- */
+              <div className="welcome-panel animate-fade-in" style={{ padding: '20px 0px' }}>
+                <div className="welcome-logo-glow stagger-1">L</div>
+                <h1 className="welcome-title stagger-1">Luminos</h1>
+                <p className="welcome-subtitle stagger-1">
+                  Your adaptive AI study companion. Search any topic to generate custom multi-dimensional explanations, interactive visual concept maps, and personalized study schedules.
+                </p>
 
-              <div className="search-container">
-                <div className="search-box">
-                  <input 
-                    type="text" 
-                    placeholder="E.g., CSS Flexbox, Theory of Relativity, Async/Await..."
-                    className="search-input"
-                    value={searchInput}
-                    onChange={(e) => setSearchInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleSearch();
-                    }}
-                    disabled={loading}
-                  />
-                  <button onClick={() => handleSearch()} className="search-btn" disabled={loading}>
-                    {loading ? (
-                      <span className="button-spinner"></span>
-                    ) : (
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <circle cx="11" cy="11" r="8"></circle>
-                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                      </svg>
-                    )}
-                    {loading ? 'Thinking...' : 'Explain'}
-                  </button>
+                <div className="search-container stagger-2" style={{ marginBottom: '36px' }}>
+                  <div className="search-box">
+                    <input 
+                      type="text" 
+                      placeholder="Enter any concept (e.g. Quantum Computing, Neural Networks, Docker)..."
+                      className="search-input"
+                      value={searchInput}
+                      onChange={(e) => setSearchInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleSearch();
+                      }}
+                      disabled={loading}
+                    />
+                    <button onClick={() => handleSearch()} className="search-btn" disabled={loading}>
+                      {loading ? (
+                        <span className="button-spinner"></span>
+                      ) : (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <circle cx="11" cy="11" r="8"></circle>
+                          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                      )}
+                      {loading ? 'Thinking...' : 'Explain'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Suggestions */}
+                <div className="stagger-2" style={{ width: '100%', maxWidth: '580px', marginBottom: '40px' }}>
+                  <div className="section-header-divider" style={{ margin: '0 0 12px' }}>
+                    <span className="section-header-text">Popular Topics</span>
+                    <div className="section-header-line"></div>
+                  </div>
+                  <div className="quick-topics" style={{ marginTop: '0', justifyContent: 'flex-start' }}>
+                    {quickStartTags.map(tag => (
+                      <button 
+                        key={tag} 
+                        className="quick-topic-tag"
+                        onClick={() => handleSearch(tag)}
+                      >
+                        {tag}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Core Features Interactive Playground Overview (The "Jist") */}
+                <div className="stagger-3" style={{ width: '100%', maxWidth: '800px', marginBottom: '16px' }}>
+                  <div className="section-header-divider" style={{ margin: '0 0 24px' }}>
+                    <span className="section-header-text">Interactive Sandbox Overview</span>
+                    <div className="section-header-line"></div>
+                  </div>
+                </div>
+
+                <div className="dashboard-grid stagger-3">
+                  {/* Multi-style learning sandbox */}
+                  <div className="dashboard-feature-card playground-card">
+                    <div className="feature-card-header">
+                      <div className="feature-card-icon" style={{ color: '#2dd4bf', background: 'rgba(45, 212, 191, 0.08)' }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                      </div>
+                      <span className="card-badge-tag">Interactive Preview</span>
+                    </div>
+                    <h3 className="feature-card-title">Multi-Style Learning</h3>
+                    <p className="feature-card-desc">
+                      Experience explanations customized to how you think. Switch modes to preview:
+                    </p>
+                    
+                    {/* Sandbox style selector */}
+                    <div className="sandbox-selector-row">
+                      <button className={`sandbox-selector-btn eli5 ${sandboxStyle === 'eli5' ? 'active' : ''}`} onClick={() => setSandboxStyle('eli5')}>ELI5</button>
+                      <button className={`sandbox-selector-btn prof ${sandboxStyle === 'professional' ? 'active' : ''}`} onClick={() => setSandboxStyle('professional')}>Prof</button>
+                      <button className={`sandbox-selector-btn steps ${sandboxStyle === 'step_by_step' ? 'active' : ''}`} onClick={() => setSandboxStyle('step_by_step')}>Steps</button>
+                      <button className={`sandbox-selector-btn examples ${sandboxStyle === 'examples' ? 'active' : ''}`} onClick={() => setSandboxStyle('examples')}>Cases</button>
+                    </div>
+
+                    <div className="sandbox-preview-box" key={sandboxStyle}>
+                      {sandboxStyle === 'eli5' && <p className="sandbox-text">Think of a neural network like a digital brain. A bunch of virtual "helpers" connected together, learning what a dog is by looking at example photos.</p>}
+                      {sandboxStyle === 'professional' && <p className="sandbox-text">An artificial neural network (ANN) is a mathematical model where input signals are weighted, summed, and passed through nonlinear activation functions.</p>}
+                      {sandboxStyle === 'step_by_step' && <p className="sandbox-text">1. Input signal values loaded.<br/>2. Multiplying by connection weights.<br/>3. Summing and adding bias values.<br/>4. Activation function output.</p>}
+                      {sandboxStyle === 'examples' && <p className="sandbox-text">For instance, a computer scans 10,000 photos of cats. If it predicts wrong, it updates its coefficients until accuracy exceeds 99%.</p>}
+                    </div>
+                  </div>
+
+                  {/* Quiz Simulator sandbox */}
+                  <div className="dashboard-feature-card playground-card">
+                    <div className="feature-card-header">
+                      <div className="feature-card-icon" style={{ color: '#fb923c', background: 'rgba(251, 146, 60, 0.08)' }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                      </div>
+                      <span className="card-badge-tag">Quiz Simulator</span>
+                    </div>
+                    <h3 className="feature-card-title">Interactive Quizzes</h3>
+                    <p className="feature-card-desc">
+                      Try this preview multiple-choice question:
+                    </p>
+
+                    <div className="sandbox-quiz-box">
+                      <div className="sandbox-quiz-question">Which part scales input signals in a neuron?</div>
+                      <div className="sandbox-quiz-options">
+                        <button className={`sb-quiz-btn ${sandboxQuizSelected === 0 ? 'wrong' : ''}`} onClick={() => setSandboxQuizSelected(0)} disabled={sandboxQuizSelected !== null}>
+                          <span>A) Input Layer</span>
+                        </button>
+                        <button className={`sb-quiz-btn ${sandboxQuizSelected === 1 ? 'correct' : ''} ${sandboxQuizSelected !== null && sandboxQuizSelected !== 1 ? 'correct-highlight' : ''}`} onClick={() => setSandboxQuizSelected(1)} disabled={sandboxQuizSelected !== null}>
+                          <span>B) Connection Weight</span>
+                        </button>
+                        <button className={`sb-quiz-btn ${sandboxQuizSelected === 2 ? 'wrong' : ''}`} onClick={() => setSandboxQuizSelected(2)} disabled={sandboxQuizSelected !== null}>
+                          <span>C) Bias Value</span>
+                        </button>
+                      </div>
+
+                      {sandboxQuizSelected !== null && (
+                        <div className="sandbox-quiz-feedback animate-fade-in">
+                          {sandboxQuizSelected === 1 ? '🎉 Correct! Weights scale input values.' : '❌ Incorrect. Correct is B (Connection Weight).'}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Study Plan milestones sandbox */}
+                  <div className="dashboard-feature-card playground-card">
+                    <div className="feature-card-header">
+                      <div className="feature-card-icon" style={{ color: '#22c55e', background: 'rgba(34, 197, 94, 0.08)' }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                      </div>
+                      <span className="card-badge-tag">Timeline Checklist</span>
+                    </div>
+                    <h3 className="feature-card-title">Personal Study Plans</h3>
+                    <p className="feature-card-desc">
+                      Tick tasks to fill the progress gauge:
+                    </p>
+
+                    <div className="sandbox-plan-box">
+                      <div className="sb-plan-tasks">
+                        {sandboxTasks.map(task => (
+                          <label key={task.id} className={`sb-task-item ${task.completed ? 'checked' : ''}`}>
+                            <input 
+                              type="checkbox" 
+                              checked={task.completed}
+                              onChange={() => {
+                                setSandboxTasks(prev => prev.map(t => t.id === task.id ? { ...t, completed: !t.completed } : t));
+                              }}
+                            />
+                            <span>{task.text}</span>
+                          </label>
+                        ))}
+                      </div>
+                      <div className="sb-progress-container">
+                        {(() => {
+                          const completedCount = sandboxTasks.filter(t => t.completed).length;
+                          const pct = Math.round((completedCount / sandboxTasks.length) * 100);
+                          return (
+                            <>
+                              <div className="sb-progress-text">Progress: {pct}%</div>
+                              <div className="sb-progress-bar-bg">
+                                <div className="sb-progress-bar-fg" style={{ width: `${pct}%` }}></div>
+                              </div>
+                            </>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
+            ) : (
+              /* --- Returning User Session Dashboard --- */
+              <div className="welcome-panel session-dashboard animate-fade-in" style={{ padding: '10px 0px', textAlign: 'left', alignItems: 'stretch' }}>
+                
+                {/* Header Welcome back */}
+                <div className="session-dashboard-header stagger-1">
+                  <h1 className="session-dashboard-title">
+                    {(() => {
+                      const hr = new Date().getHours();
+                      if (hr < 12) return 'Good morning, Scholar ☕';
+                      if (hr < 17) return 'Good afternoon, Explorer ☀️';
+                      return 'Good evening, Master 🌙';
+                    })()}
+                  </h1>
+                  <p className="session-dashboard-sub">
+                    Master any concept with customized visual explanation diagrams, style toggle explanations, quizzes, and structured timetables.
+                  </p>
+                </div>
 
-              <div className="quick-topics">
-                {quickStartTags.map(tag => (
-                  <button 
-                    key={tag} 
-                    className="quick-topic-tag"
-                    onClick={() => handleSearch(tag)}
-                  >
-                    {tag}
-                  </button>
-                ))}
+                {/* Search / Launch Bar */}
+                <div className="search-container stagger-1" style={{ width: '100%', maxWidth: '100%', marginBottom: '24px' }}>
+                  <div className="search-box">
+                    <input 
+                      type="text" 
+                      placeholder="Start exploring a new concept..."
+                      className="search-input"
+                      value={searchInput}
+                      onChange={(e) => setSearchInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleSearch();
+                      }}
+                      disabled={loading}
+                    />
+                    <button onClick={() => handleSearch()} className="search-btn" disabled={loading}>
+                      {loading ? (
+                        <span className="button-spinner"></span>
+                      ) : (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <circle cx="11" cy="11" r="8"></circle>
+                          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                      )}
+                      {loading ? 'Thinking...' : 'Explain'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Dashboard layout: Left (Resume & Milestones), Right (Analytics & Quick search) */}
+                <div className="session-dashboard-layout stagger-2">
+                  
+                  {/* Left Column: Last Session & Consolidated Timelines */}
+                  <div className="dashboard-col main-col">
+                    {/* Resume Banner */}
+                    {history[0] && (
+                      <div className="resume-session-card">
+                        <div className="resume-card-glow"></div>
+                        <div className="resume-card-content">
+                          <div className="resume-badge">Latest Subject</div>
+                          <h2 className="resume-topic-title">{history[0].topic}</h2>
+                          <p className="resume-sub-text">Last studied {history[0].timestamp}</p>
+                          <button 
+                            className="btn-generate btn-resume"
+                            onClick={() => {
+                              setCurrentTopicId(history[0].id);
+                              setActiveTab('explain');
+                              setError(null);
+                            }}
+                          >
+                            <span>Resume Study Session</span>
+                            <span style={{ fontSize: '1.1rem' }}>&rarr;</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Consolidated active milestones */}
+                    <div className="consolidated-tasks-card">
+                      <h3 className="card-section-title">Consolidated Timelines</h3>
+                      <p className="card-section-sub">Outstanding milestone study tasks across your active paths:</p>
+                      
+                      {(() => {
+                        // Gather up to 5 incomplete tasks across study plans in history
+                        const activeMilestones = [];
+                        history.forEach(topic => {
+                          if (topic.studyPlan && topic.studyPlan.timeline) {
+                            topic.studyPlan.timeline.forEach(phase => {
+                              if (phase.tasks) {
+                                phase.tasks.forEach(task => {
+                                  if (!task.completed) {
+                                    activeMilestones.push({
+                                      topicId: topic.id,
+                                      topicName: topic.topic,
+                                      phaseId: phase.id,
+                                      taskId: task.id,
+                                      text: task.text
+                                    });
+                                  }
+                                });
+                              }
+                            });
+                          }
+                        });
+
+                        if (activeMilestones.length === 0) {
+                          return (
+                            <div className="empty-dashboard-tasks">
+                              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                              <span>No active pending tasks. Generate study plans inside topics to track milestones here!</span>
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <div className="dashboard-task-list">
+                            {activeMilestones.slice(0, 5).map(milestone => (
+                              <label key={`${milestone.topicId}-${milestone.taskId}`} className="db-task-item">
+                                <input 
+                                  type="checkbox" 
+                                  className="task-checkbox"
+                                  onChange={() => handleToggleDashboardTask(milestone.topicId, milestone.phaseId, milestone.taskId)}
+                                />
+                                <div className="db-task-details">
+                                  <span className="db-task-text">{milestone.text}</span>
+                                  <span className="db-task-label">{milestone.topicName}</span>
+                                </div>
+                              </label>
+                            ))}
+                            {activeMilestones.length > 5 && (
+                              <div className="db-tasks-more-footer">
+                                ...and {activeMilestones.length - 5} more milestone tasks in your sidebar history plans.
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  </div>
+
+                  {/* Right Column: Statistics & Quick launch items */}
+                  <div className="dashboard-col sidebar-col">
+                    {/* Stats Analytics Grid */}
+                    <div className="analytics-vertical-grid">
+                      <div className="dashboard-stat-card border-teal">
+                        <div className="stat-glow"></div>
+                        <span className="d-stat-val">{history.length}</span>
+                        <span className="d-stat-lbl">Topics Learned</span>
+                      </div>
+                      
+                      <div className="dashboard-stat-card border-coral">
+                        <div className="stat-glow"></div>
+                        <span className="d-stat-val">{stats.quizzesTaken}</span>
+                        <span className="d-stat-lbl">Quizzes Taken</span>
+                      </div>
+
+                      <div className="dashboard-stat-card border-green">
+                        <div className="stat-glow"></div>
+                        <span className="d-stat-val">{stats.quizzesTaken > 0 ? `${stats.avgScore}%` : '—'}</span>
+                        <span className="d-stat-lbl">Average Score</span>
+                      </div>
+
+                      <div className="dashboard-stat-card border-amber">
+                        <div className="stat-glow"></div>
+                        <span className="d-stat-val">{history.length * 1.5} hrs</span>
+                        <span className="d-stat-lbl">Estimated Study Time</span>
+                      </div>
+                    </div>
+
+                    {/* Popular Topics widget */}
+                    <div className="quick-search-tags-card">
+                      <h3 className="card-section-title">Popular Quickstarts</h3>
+                      <div className="quick-topics" style={{ marginTop: '12px', justifyContent: 'flex-start' }}>
+                        {quickStartTags.map(tag => (
+                          <button 
+                            key={tag} 
+                            className="quick-topic-tag"
+                            onClick={() => handleSearch(tag)}
+                          >
+                            {tag}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
               </div>
-            </div>
+            )
           ) : (
             /* --- Active Learning Workspace --- */
             <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -682,9 +1106,54 @@ function App() {
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A5 5 0 0 0 8 8c0 1 .5 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
                       Examples
                     </button>
+                    <button 
+                      className={`segmented-btn visual-map ${explanationStyle === 'visual_map' ? 'active' : ''}`}
+                      onClick={() => {
+                        setExplanationStyle('visual_map');
+                        const vMap = activeTopic.visualMap || generateFallbackVisualMap(activeTopic.topic);
+                        if (vMap && vMap.nodes && vMap.nodes[0]) {
+                          setSelectedMapNodeId(vMap.nodes[0].id);
+                        } else {
+                          setSelectedMapNodeId(null);
+                        }
+                      }}
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                      Visual Map
+                    </button>
                   </div>
 
-                  {(!activeTopic.explanations[explanationStyle] || activeTopic.explanations[explanationStyle].startsWith('No ')) ? (
+                  {explanationStyle === 'visual_map' ? (
+                    <div className="visual-map-workspace stagger-4">
+                      <VisualConceptMap 
+                        visualMap={activeTopic.visualMap || generateFallbackVisualMap(activeTopic.topic)}
+                        onSelectNode={(nodeId) => setSelectedMapNodeId(nodeId)}
+                        selectedNodeId={selectedMapNodeId}
+                      />
+                      
+                      {/* Detailed node panel */}
+                      <div className="visual-map-detail-panel">
+                        {(() => {
+                          const vMap = activeTopic.visualMap || generateFallbackVisualMap(activeTopic.topic);
+                          const selectedNode = vMap.nodes.find(n => n.id === selectedMapNodeId);
+                          if (selectedNode) {
+                            return (
+                              <div className="node-detail-card animate-fade-in" key={selectedMapNodeId}>
+                                <h4 className="node-detail-title">{selectedNode.title}</h4>
+                                <p className="node-detail-desc">{selectedNode.description}</p>
+                              </div>
+                            );
+                          }
+                          return (
+                            <div className="node-detail-prompt">
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                              <span>Click any subtopic in the mind map above to explore its core details.</span>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  ) : (!activeTopic.explanations[explanationStyle] || activeTopic.explanations[explanationStyle].startsWith('No ')) ? (
                     <div key={`empty-${explanationStyle}`} className="empty-state-card stagger-4">
                       <div className="empty-state-icon">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
