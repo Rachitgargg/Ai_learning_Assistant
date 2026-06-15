@@ -199,6 +199,27 @@ function VisualConceptMap({ visualMap, onSelectNode, selectedNodeId }) {
   );
 }
 
+// --- Helper to categorize history topics for visual badges ---
+function getTopicCategory(topic) {
+  const name = (topic || '').toLowerCase();
+  if (
+    name.includes('react') || name.includes('vue') || name.includes('javascript') || name.includes('python') || 
+    name.includes('docker') || name.includes('programming') || name.includes('coding') || name.includes('git') || 
+    name.includes('database') || name.includes('sql') || name.includes('neural') || name.includes('ai') || 
+    name.includes('machine learning') || name.includes('deep learning') || name.includes('rag') || name.includes('computer') ||
+    name.includes('developer') || name.includes('css') || name.includes('html') || name.includes('web') || name.includes('network')
+  ) {
+    return 'cs';
+  }
+  if (name.includes('quantum') || name.includes('physics') || name.includes('chemistry') || name.includes('biology') || name.includes('science') || name.includes('astronomy') || name.includes('space')) {
+    return 'science';
+  }
+  if (name.includes('math') || name.includes('calculus') || name.includes('algebra') || name.includes('geometry') || name.includes('statistics') || name.includes('probability')) {
+    return 'math';
+  }
+  return 'general';
+}
+
 function App() {
   // --- Settings State ---
   const [apiKey, setApiKey] = useState(() => {
@@ -725,7 +746,7 @@ function App() {
               /* --- Brand New User Welcome Panel (Feature Playgrounds) --- */
               <div className="welcome-panel animate-fade-in" style={{ padding: '20px 0px' }}>
                 <div className="welcome-logo-glow stagger-1">L</div>
-                <h1 className="welcome-title stagger-1">Luminos</h1>
+                <h1 className="welcome-title stagger-1"><span className="text-gradient-brand">Luminos</span></h1>
                 <p className="welcome-subtitle stagger-1">
                   Your adaptive AI study companion. Search any topic to generate custom multi-dimensional explanations, interactive visual concept maps, and personalized study schedules.
                 </p>
@@ -786,7 +807,7 @@ function App() {
 
                 <div className="dashboard-grid stagger-3">
                   {/* Multi-style learning sandbox */}
-                  <div className="dashboard-feature-card playground-card">
+                  <div className="dashboard-feature-card playground-card card-mesh-pattern">
                     <div className="window-chrome">
                       <span className="chrome-dot red"></span>
                       <span className="chrome-dot yellow"></span>
@@ -820,7 +841,7 @@ function App() {
                   </div>
 
                   {/* Quiz Simulator sandbox */}
-                  <div className="dashboard-feature-card playground-card">
+                  <div className="dashboard-feature-card playground-card card-mesh-pattern">
                     <div className="window-chrome">
                       <span className="chrome-dot red"></span>
                       <span className="chrome-dot yellow"></span>
@@ -860,7 +881,7 @@ function App() {
                   </div>
 
                   {/* Study Plan milestones sandbox */}
-                  <div className="dashboard-feature-card playground-card">
+                  <div className="dashboard-feature-card playground-card card-mesh-pattern">
                     <div className="window-chrome">
                       <span className="chrome-dot red"></span>
                       <span className="chrome-dot yellow"></span>
@@ -929,8 +950,32 @@ function App() {
                   </p>
                 </div>
 
+                {/* Live System Status Bar */}
+                <div className="live-status-bar stagger-1">
+                  <div className="status-item">
+                    <span className={`pulse-dot ${supabaseUrl ? 'green' : 'orange'}`}></span>
+                    <span className="label">Cloud Sync:</span>
+                    <span className="value">{supabaseUrl ? 'Supabase Connected' : 'Local Cache'}</span>
+                  </div>
+                  <div className="status-item">
+                    <span className="pulse-dot teal"></span>
+                    <span className="label">AI Engine:</span>
+                    <span className="value">{model}</span>
+                  </div>
+                  <div className="status-item">
+                    <span className="pulse-dot teal"></span>
+                    <span className="label">Active Paths:</span>
+                    <span className="value">{history.length}</span>
+                  </div>
+                  <div className="status-item" style={{ marginLeft: 'auto' }}>
+                    <span className="pulse-dot green"></span>
+                    <span className="label">Status:</span>
+                    <span className="value">AI Online</span>
+                  </div>
+                </div>
+
                 {/* Search / Launch Bar */}
-                <div className="search-container stagger-1" style={{ width: '100%', maxWidth: '100%', marginBottom: '24px' }}>
+                <div className="search-container stagger-1" style={{ width: '100%', maxWidth: '100%', marginBottom: '16px' }}>
                   <div className="search-box">
                     <input 
                       type="text" 
@@ -957,6 +1002,81 @@ function App() {
                   </div>
                 </div>
 
+                {/* AI Labs Accelerators Grid */}
+                <div className="quick-labs-grid stagger-1">
+                  <div 
+                    className="quick-lab-btn" 
+                    style={{ '--hover-color': '#2dd4bf' }}
+                    onClick={() => {
+                      setSearchInput('Compare React and Vue side-by-side');
+                      const input = document.querySelector('.search-input');
+                      if (input) input.focus();
+                    }}
+                  >
+                    <div className="quick-lab-icon" style={{ color: '#2dd4bf' }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.0">
+                        <polygon points="5 3 19 12 5 21 5 3"/>
+                      </svg>
+                    </div>
+                    <span className="quick-lab-title">Concept Battle</span>
+                    <span className="quick-lab-desc">Compare two ideas side-by-side</span>
+                  </div>
+
+                  <div 
+                    className="quick-lab-btn" 
+                    style={{ '--hover-color': '#fb923c' }}
+                    onClick={() => {
+                      setSearchInput('Generate a deep quiz on Docker and container networking');
+                      const input = document.querySelector('.search-input');
+                      if (input) input.focus();
+                    }}
+                  >
+                    <div className="quick-lab-icon" style={{ color: '#fb923c' }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.0">
+                        <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                      </svg>
+                    </div>
+                    <span className="quick-lab-title">Exam Prep</span>
+                    <span className="quick-lab-desc">Generate quizzes for core tech</span>
+                  </div>
+
+                  <div 
+                    className="quick-lab-btn" 
+                    style={{ '--hover-color': '#22c55e' }}
+                    onClick={() => {
+                      setSearchInput('Explain Quantum Computing to a 5 year old with simple analogies');
+                      const input = document.querySelector('.search-input');
+                      if (input) input.focus();
+                    }}
+                  >
+                    <div className="quick-lab-icon" style={{ color: '#22c55e' }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.0">
+                        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                      </svg>
+                    </div>
+                    <span className="quick-lab-title">ELI5 Mode</span>
+                    <span className="quick-lab-desc">Simplify complex subjects instantly</span>
+                  </div>
+
+                  <div 
+                    className="quick-lab-btn" 
+                    style={{ '--hover-color': '#3b82f6' }}
+                    onClick={() => {
+                      setSearchInput('Create a comprehensive learning path for advanced Python OOP');
+                      const input = document.querySelector('.search-input');
+                      if (input) input.focus();
+                    }}
+                  >
+                    <div className="quick-lab-icon" style={{ color: '#3b82f6' }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.0">
+                        <polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                      </svg>
+                    </div>
+                    <span className="quick-lab-title">Roadmap Lab</span>
+                    <span className="quick-lab-desc">Build complete learning pathways</span>
+                  </div>
+                </div>
+
                 {/* Dashboard layout: Left (Resume & Milestones), Right (Analytics & Quick search) */}
                 <div className="session-dashboard-layout stagger-2">
                   
@@ -964,12 +1084,53 @@ function App() {
                   <div className="dashboard-col main-col">
                     {/* Resume Banner */}
                     {history[0] && (
-                      <div className="resume-session-card">
+                      <div className="resume-session-card card-mesh-pattern">
                         <div className="resume-card-glow"></div>
                         <div className="resume-card-content">
-                          <div className="resume-badge">Latest Subject</div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                            <div className="resume-badge">Latest Subject</div>
+                            {(() => {
+                              const cat = getTopicCategory(history[0].topic);
+                              const labels = { cs: 'Computer Science', math: 'Mathematics', science: 'Science', general: 'General' };
+                              return <span className={`category-badge ${cat}`}>{labels[cat]}</span>;
+                            })()}
+                          </div>
                           <h2 className="resume-topic-title">{history[0].topic}</h2>
                           <p className="resume-sub-text">Last studied {history[0].timestamp}</p>
+
+                          {/* Mini Checklist Progress bar */}
+                          {(() => {
+                            let total = 0;
+                            let completed = 0;
+                            if (history[0].studyPlan && history[0].studyPlan.timeline) {
+                              history[0].studyPlan.timeline.forEach(phase => {
+                                if (phase.tasks) {
+                                  phase.tasks.forEach(t => {
+                                    total++;
+                                    if (t.completed) completed++;
+                                  });
+                                }
+                              });
+                            }
+                            if (total > 0) {
+                              const pct = Math.round((completed / total) * 100);
+                              return (
+                                <div className="resume-progress-container">
+                                  <div className="resume-progress-label">
+                                    <span>Milestones checklist</span>
+                                    <span>{completed}/{total} ({pct}%)</span>
+                                  </div>
+                                  <div className="resume-progress-bar-bg">
+                                    <div className="resume-progress-bar-fg" style={{ width: `${pct}%` }}></div>
+                                  </div>
+                                </div>
+                              );
+                            }
+                            return null;
+                          })()}
+
+                          <div style={{ height: '12px' }}></div>
+
                           <button 
                             className="btn-generate btn-resume"
                             onClick={() => {
@@ -986,7 +1147,7 @@ function App() {
                     )}
 
                     {/* Consolidated active milestones */}
-                    <div className="consolidated-tasks-card">
+                    <div className="consolidated-tasks-card card-mesh-pattern">
                       <h3 className="card-section-title">Consolidated Timelines</h3>
                       <p className="card-section-sub">Outstanding milestone study tasks across your active paths:</p>
                       
@@ -1052,19 +1213,19 @@ function App() {
                   <div className="dashboard-col sidebar-col">
                     {/* Stats Analytics Grid */}
                     <div className="analytics-vertical-grid">
-                      <div className="dashboard-stat-card border-teal">
+                      <div className="dashboard-stat-card border-teal card-mesh-pattern">
                         <div className="stat-glow"></div>
                         <span className="d-stat-val">{history.length}</span>
                         <span className="d-stat-lbl">Topics Learned</span>
                       </div>
                       
-                      <div className="dashboard-stat-card border-coral">
+                      <div className="dashboard-stat-card border-coral card-mesh-pattern">
                         <div className="stat-glow"></div>
                         <span className="d-stat-val">{stats.quizzesTaken}</span>
                         <span className="d-stat-lbl">Quizzes Taken</span>
                       </div>
 
-                      <div className="dashboard-stat-card border-green flex-row-layout">
+                      <div className="dashboard-stat-card border-green flex-row-layout card-mesh-pattern">
                         <div className="stat-glow"></div>
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                           <span className="d-stat-val">{stats.quizzesTaken > 0 ? `${stats.avgScore}%` : '—'}</span>
@@ -1089,7 +1250,7 @@ function App() {
                     </div>
 
                     {/* Weekly Activity Graph */}
-                    <div className="activity-chart-card stagger-3">
+                    <div className="activity-chart-card card-mesh-pattern stagger-3">
                       <h3 className="card-section-title">Weekly Learning Activity</h3>
                       <p className="card-section-sub">Topics studied per day this week:</p>
                       
@@ -1113,7 +1274,13 @@ function App() {
                         const daysFull = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
                         return (
-                          <div className="chart-bar-container">
+                          <div className="chart-bar-container" style={{ position: 'relative', width: '100%' }}>
+                            <div className="chart-bg-grid">
+                              <div className="chart-grid-line"></div>
+                              <div className="chart-grid-line"></div>
+                              <div className="chart-grid-line"></div>
+                              <div className="chart-grid-line"></div>
+                            </div>
                             {activity.map((val, idx) => {
                               const pct = Math.min((val / maxVal) * 100, 100);
                               const barHeight = val > 0 ? `${Math.max(pct, 12)}%` : '4%';
@@ -1137,7 +1304,7 @@ function App() {
                     </div>
 
                     {/* Popular Topics widget */}
-                    <div className="quick-search-tags-card">
+                    <div className="quick-search-tags-card card-mesh-pattern">
                       <h3 className="card-section-title">Popular Quickstarts</h3>
                       <div className="quick-topics" style={{ marginTop: '12px', justifyContent: 'flex-start' }}>
                         {quickStartTags.map(tag => (
@@ -1152,7 +1319,6 @@ function App() {
                       </div>
                     </div>
                   </div>
-
                 </div>
               </div>
             )
