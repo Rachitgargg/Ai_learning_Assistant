@@ -950,29 +950,6 @@ function App() {
                   </p>
                 </div>
 
-                {/* Live System Status Bar */}
-                <div className="live-status-bar stagger-1">
-                  <div className="status-item">
-                    <span className={`pulse-dot ${supabaseUrl ? 'green' : 'orange'}`}></span>
-                    <span className="label">Cloud Sync:</span>
-                    <span className="value">{supabaseUrl ? 'Supabase Connected' : 'Local Cache'}</span>
-                  </div>
-                  <div className="status-item">
-                    <span className="pulse-dot teal"></span>
-                    <span className="label">AI Engine:</span>
-                    <span className="value">{model}</span>
-                  </div>
-                  <div className="status-item">
-                    <span className="pulse-dot teal"></span>
-                    <span className="label">Active Paths:</span>
-                    <span className="value">{history.length}</span>
-                  </div>
-                  <div className="status-item" style={{ marginLeft: 'auto' }}>
-                    <span className="pulse-dot green"></span>
-                    <span className="label">Status:</span>
-                    <span className="value">AI Online</span>
-                  </div>
-                </div>
 
                 {/* Search / Launch Bar */}
                 <div className="search-container stagger-1" style={{ width: '100%', maxWidth: '100%', marginBottom: '16px' }}>
