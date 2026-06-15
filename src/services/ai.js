@@ -145,7 +145,8 @@ You MUST respond with a valid JSON object matching this schema:
   }
 }`;
 
-  const userPrompt = `Concept to explain: ${concept}`;
+  const userPrompt = `Concept to explain: ${concept}.
+Return the results in the exact JSON format specified in the system instructions. Output only a valid JSON object.`;
 
   const result = await callOpenAI({
     path: '/chat/completions',
@@ -202,7 +203,8 @@ You MUST respond with a valid JSON object matching this schema:
   const userPrompt = `Context explanations:
 ${explanationSnippet}
 
-Generate a 5-question quiz for: ${concept}`;
+Generate a 5-question quiz for: ${concept}.
+Return the results in the exact JSON format specified in the system instructions. Output only a valid JSON object.`;
 
   const result = await callOpenAI({
     path: '/chat/completions',
@@ -264,7 +266,8 @@ You MUST respond with a valid JSON object matching this schema:
 
   const userPrompt = `Generate study plan for concept "${concept}".
 User Goals: ${goals}
-Time Available: ${timeCommitment}`;
+Time Available: ${timeCommitment}.
+Return the results in the exact JSON format specified in the system instructions. Output only a valid JSON object.`;
 
   const result = await callOpenAI({
     path: '/chat/completions',
